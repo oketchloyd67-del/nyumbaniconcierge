@@ -24,6 +24,24 @@ require("dotenv").config();
 const app = express();
 app.use(express.json());
 
+/* CORS — the frontend is hosted separately (Vercel / localhost) and calls this API
+   cross-origin. By default allow any origin (the API uses token auth, not cookies).
+   To restrict it, set CORS_ORIGINS to a comma-separated list of allowed origins. */
+app.use((req, res, next) => {
+  const allowed = (process.env.CORS_ORIGINS || "")
+    .split(",").map(s => s.trim()).filter(Boolean);
+  if (allowed.length === 0) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  } else if (req.headers.origin && allowed.includes(req.headers.origin)) {
+    res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 /* ---------------- Config ---------------- */
 const PORT = process.env.PORT || 3000;
 

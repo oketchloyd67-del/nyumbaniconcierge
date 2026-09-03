@@ -1,0 +1,25 @@
+# Render Blueprint — deploys the Nyumbani Concierge API (server/ folder).
+# Import this repo in Render and it will pick up this file automatically.
+#
+# After the service is created, set these in the Render dashboard
+# (Dashboard → your service → Environment):
+#   TUMA_EMAIL      your Tuma account email
+#   TUMA_API_KEY    your Tuma API key
+#   TUMA_CALLBACK_URL  https://<your-service-name>.onrender.com/api/callback
+services:
+  - type: web
+    name: nyumbani-concierge-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: TUMA_EMAIL
+        sync: false
+      - key: TUMA_API_KEY
+        sync: false
+      - key: TUMA_CALLBACK_URL
+        sync: false
+      - key: NODE_VERSION
+        value: 20.x

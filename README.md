@@ -82,7 +82,7 @@ The frontend auto-detects the server and switches to live mode. The server:
 - triggers the **Tuma STK push** (`POST /api/stkpush`) and marks orders **paid**
   via the callback (`POST /api/callback`)
 - stores orders and reports as JSON files in `server/data/`
-- serves the app from `public/` (copy `index.html` there, or serve the folder directly)
+- answers CORS so the separately-hosted frontend can call it
 
 **Going live with M-Pesa (Tuma):**
 1. The Tuma integration in `server.js` is copied **directly from the semacheck
@@ -100,6 +100,55 @@ The frontend auto-detects the server and switches to live mode. The server:
    marked **paid** with the M-Pesa receipt number.
 4. **Bank transfers** stay manual: client transfers → you check the account →
    mark the order paid (`POST /api/orders/:id/confirm`).
+
+## Deploying — frontend on Vercel, backend on Render
+
+The repo is split in two: `frontend/` (static site, zero build) and `server/`
+(Node/Express API). Vercel hosts the frontend; Render hosts the API.
+
+### 1. Push the current code
+```bash
+git add -A
+git commit -m "Split frontend and backend for Vercel + Render deployment"
+git push origin main
+```
+
+### 2. Create the API on Render (do this first — you need its URL)
+1. render.com → New → **Blueprint** → pick this repo. `render.yaml` is already
+   in the repo, so Render creates the web service automatically
+   (root directory `server`, start `npm start`).
+2. In the service's **Environment** tab set:
+   - `TUMA_EMAIL` — your Tuma account email
+   - `TUMA_API_KEY` — your Tuma API key
+   - `TUMA_CALLBACK_URL` — `https://<your-service-name>.onrender.com/api/callback`
+3. Deploy, then copy your service URL
+   (e.g. `https://nyumbani-concierge-api.onrender.com`).
+
+### 3. Point the frontend at the API
+In `frontend/index.html` → `CONFIG.apiBase`:
+```js
+apiBase: "https://nyumbani-concierge-api.onrender.com"
+```
+Leave it `""` only for local development (same-origin on `http://localhost:3000`).
+
+### 4. Deploy the frontend on Vercel
+1. vercel.com → Add New → Project → import this repo.
+2. **Root Directory: `frontend`** — this deploys only the frontend.
+3. Framework preset: **Other** (static site, no build command) → Deploy.
+   `vercel.json` already sets clean URLs, headers and the SW cache rule.
+
+### 5. Verify
+- Open the Vercel URL: the site loads; create an account and an order → the
+  pay page reaches Render via `CONFIG.apiBase`, so M-Pesa/bank payments work
+  for real. The first request can take ~30–60 s while Render's free instance
+  spins up.
+- `TUMA_CALLBACK_URL` must be your Render URL so Tuma can deliver payment
+  callbacks (orders stay "pending" until then).
+
+### 6. Replace the placeholder domain after deploy
+`https://nyumbaniconcierge.vercel.app/` is used in `frontend/index.html`
+(canonical, OG, JSON-LD), `frontend/robots.txt`, `frontend/sitemap.xml` and
+`frontend/.well-known/security.txt` — search-and-replace with your real domain.
 
 ## Before going live — replace these placeholders
 
@@ -126,25 +175,27 @@ Search `index.html` for:
 ## Files
 
 ```
-index.html              the app (all 10 pages, chatbot, inlined CSS/JS)
-assets/                 the owner's brand images (logo banner, circular badge,
-                        horizontal logo) — used as the source for all icons
-make-assets.js          builds the icons/OG image from assets/ (node make-assets.js)
-favicon-32.png          browser tab icon (from the badge)
-icon-192.png / icon-512.png / icon-512-maskable.png / apple-touch-icon-180.png
-og-image.png            Open Graph share image 1200x630 (from the logo banner)
-manifest.webmanifest    PWA manifest (installable app)
-sw.js                   service worker (offline app shell)
-serve.js                zero-dependency static server for local preview (node serve.js)
-robots.txt              crawler rules incl. AI bots, sitemap pointer
-sitemap.xml             sitemap for search engines
-llms.txt                machine-readable summary for AI platforms
-.well-known/security.txt  responsible-disclosure contact
-server/
-  server.js       Express: accounts, Tuma STK push, callback, orders/reports store
+frontend/             what Vercel deploys (root directory: frontend)
+  index.html            the app (all 10 pages, chatbot, inlined CSS/JS)
+  assets/               the owner's brand images (logo banner, circular badge,
+                        horizontal logo) — source for all icons
+  make-assets.js        builds the icons/OG image from assets/ (node make-assets.js)
+  favicon-32.png        browser tab icon (from the badge)
+  icon-192.png / icon-512.png / icon-512-maskable.png / apple-touch-icon-180.png
+  og-image.png          Open Graph share image 1200x630 (from the logo banner)
+  manifest.webmanifest  PWA manifest (installable app)
+  sw.js                 service worker (offline app shell)
+  vercel.json           Vercel config (clean URLs, headers)
+  serve.js              zero-dependency static server (node serve.js)
+  robots.txt / sitemap.xml / llms.txt / .well-known/security.txt
+server/               what Render deploys (root directory: server)
+  server.js       Express: accounts, Tuma STK push, callback, orders/reports
+                  store — CORS enabled for the Vercel frontend
   package.json    dependencies (express, dotenv)
   .env.example    copy to .env and fill in Tuma credentials
   data/           created at runtime (orders.json, users.json, reports.json)
+render.yaml           Render Blueprint — creates the API service automatically
+README.md             this file
 ```
 
 **Regenerating the icons after you swap the brand images in `assets/`:** run

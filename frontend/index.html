@@ -593,8 +593,15 @@ const CONFIG = {
   whatsappLink: "https://wa.me/254714589375",
   email: "semacheck254@gmail.com",
   adminPasscode: "nyumbani2026",          // passcode for the owner panel in the Account page
-  tumaTill: "000000"                       // your M-Pesa Till/Paybill
+  tumaTill: "000000",                      // your M-Pesa Till/Paybill
+  // API base for the backend. The frontend (Vercel) and backend (Render) are
+  // separate origins, so API calls must point at your Render URL, e.g.
+  //   apiBase: "https://nyumbani-concierge-api.onrender.com",
+  // Leave empty ("") only for local development (same-origin: localhost:3000).
+  apiBase: ""
 };
+// Prefixes API paths with the backend base URL (empty = same origin).
+const apiUrl = (p) => (CONFIG.apiBase ? CONFIG.apiBase.replace(/\/+$/, "") : "") + p;
 
 const SOCIALS = [
   { name: "Facebook", url: "https://www.facebook.com/share/19Jz5ax8Ta/", bg: "#1877F2", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/></svg>' },
@@ -839,7 +846,7 @@ async function startStk(order) {
   btn.disabled = true; setStep(2);
   if (API_MODE === "live") {
     try {
-      const r = await fetch("/api/stkpush", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order.id, phone, amount: order.total }) });
+      const r = await fetch(apiUrl("/api/stkpush"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order.id, phone, amount: order.total }) });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "STK push failed");
       pollOrderStatus(order.id);
@@ -862,7 +869,7 @@ function confirmStk(order, phone) {
 }
 async function pollOrderStatus(orderId) {
   const iv = setInterval(async () => {
-    try { const r = await fetch("/api/orders/" + orderId); const o = await r.json();
+    try { const r = await fetch(apiUrl("/api/orders/" + orderId)); const o = await r.json();
       if (o && (o.status === "paid" || o.status === "awaiting")) { clearInterval(iv); const l = getOrder(orderId); if (l) updateOrder(orderId, { status: o.status, txnId: o.txnId }); location.hash = "#/receipt/" + orderId; } } catch {}
   }, 2500);
 }
@@ -1124,8 +1131,8 @@ if ("serviceWorker" in navigator) {
 let API_MODE = "demo";
 (async function detectApi() {
   try {
-    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 2500);
-    const r = await fetch("/api/health", { signal: ctrl.signal }); clearTimeout(t);
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(apiUrl("/api/health"), { signal: ctrl.signal }); clearTimeout(t);
     if (r.ok) { API_MODE = "live"; }
   } catch {}
 })();
