@@ -130,8 +130,11 @@
   .nav-cart { position: relative; }
   .nav-cart .count { position: absolute; top: -8px; right: -12px; background: var(--gold); color: var(--green-deep); font-size: 0.7rem; font-weight: 800; border-radius: 999px; padding: 1px 7px; display: none; }
   .nav-cart .count.show { display: inline-block; }
-  .nav-cta { background: var(--gold); color: var(--green-deep) !important; padding: 7px 14px; border-radius: 999px; }
+  .nav-cta { background: var(--gold); color: var(--green-deep) !important; padding: 7px 14px; border-radius: 999px; border: 2px solid transparent; }
   .nav-cta:hover { background: #e3b62e; }
+  .site-nav a.nav-cta { padding: 8px 20px; }
+  .site-nav a.nav-cta.signed-in { background: transparent; color: #fff !important; border-color: rgba(255,255,255,0.65); }
+  .site-nav a.nav-cta.signed-in:hover { background: transparent; border-color: var(--gold); color: var(--gold) !important; }
   #navUser { font-size: 0.85rem; color: #f0cf6b; font-weight: 700; }
   .nav-toggle { display: none; background: none; border: 2px solid rgba(255,255,255,0.4); border-radius: 10px; width: 44px; height: 40px; cursor: pointer; color: var(--white); align-items: center; justify-content: center; flex: 0 0 auto; }
   .nav-toggle:hover { border-color: var(--gold); }
@@ -295,7 +298,7 @@
     .site-nav { display: none; flex-direction: column; align-items: stretch; gap: 2px; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--green); border-top: 1px solid rgba(255,255,255,0.15); padding: 12px 24px 20px; box-shadow: 0 20px 34px rgba(0,0,0,0.32); }
     .site-nav.open { display: flex; }
     .site-nav a { padding: 11px 4px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 1rem; }
-    .site-nav a.nav-cta { text-align: center; border-bottom: none; margin-top: 10px; }
+    .site-nav a.nav-cta { text-align: center; border-bottom: none; margin-top: 10px; align-self: center; padding: 10px 40px; }
     .grid-2, .method-grid { grid-template-columns: 1fr; }
     .section { padding: 44px 0; }
     .hero { padding: 58px 0 52px; }
@@ -348,7 +351,7 @@
       <a href="#/checkout" data-nav="checkout" class="nav-cart">Checkout <span class="count" id="navCartCount">0</span></a>
       <a href="#/reports" data-nav="reports">My Reports</a>
       <a href="#/contact" data-nav="contact">Contact</a>
-      <a href="#/account" data-nav="account" id="navAccount">Login / Sign up</a>
+      <a href="#/account" data-nav="account" id="navAccount" class="nav-cta">Login / Sign up</a>
     </nav>
   </div>
 </header>
@@ -624,6 +627,7 @@ function renderNavAuth() {
   const u = currentUser();
   const el = document.getElementById("navAccount");
   el.textContent = u ? "Hi, " + u.name.split(" ")[0] : "Login / Sign up";
+  el.classList.toggle("signed-in", !!u);
   el.href = "#/account";
 }
 function saveAll() { store.set("nc_orders", orders); store.set("nc_users", users); store.set("nc_reports", reports); store.set("nc_requests", requests); }
