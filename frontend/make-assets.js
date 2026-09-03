@@ -148,6 +148,7 @@ const banner = decodePNG(SRC(BANNER));
 const write = (name, buf) => { fs.writeFileSync(OUT(name), buf); console.log("wrote " + name + " (" + buf.length + " bytes)"); };
 
 write("favicon-32.png", encodePNG(32, 32, resize(circle, 32, 32).rgba));
+write("favicon-48.png", encodePNG(48, 48, resize(circle, 48, 48).rgba));
 write("icon-192.png", encodePNG(192, 192, resize(circle, 192, 192).rgba));
 write("icon-512.png", encodePNG(512, 512, resize(circle, 512, 512).rgba));
 write("icon-512-maskable.png", encodePNG(512, 512, resize(circle, 512, 512).rgba));
@@ -167,6 +168,29 @@ const bg = findInteriorColor(circle);
 console.log("  interior color found:", bg.join(","));
 fillTransparent(apple, bg[0], bg[1], bg[2]);
 write("apple-touch-icon-180.png", encodePNG(180, 180, apple.rgba));
+
+function pngIco(pngs) {
+  const head = Buffer.alloc(6 + 16 * pngs.length);
+  head.writeUInt16LE(0, 0);
+  head.writeUInt16LE(1, 2);
+  head.writeUInt16LE(pngs.length, 4);
+  let off = 6 + 16 * pngs.length;
+  pngs.forEach((p, i) => {
+    const e = 6 + 16 * i;
+    head[e] = p.size >= 256 ? 0 : p.size;
+    head[e + 1] = p.size >= 256 ? 0 : p.size;
+    head.writeUInt16LE(1, e + 4);
+    head.writeUInt16LE(32, e + 6);
+    head.writeUInt32LE(p.buf.length, e + 8);
+    head.writeUInt32LE(off, e + 12);
+    off += p.buf.length;
+  });
+  return Buffer.concat([head, ...pngs.map((p) => p.buf)]);
+}
+write("favicon.ico", pngIco([
+  { size: 48, buf: encodePNG(48, 48, resize(circle, 48, 48).rgba) },
+  { size: 32, buf: encodePNG(32, 32, resize(circle, 32, 32).rgba) },
+]));
 
 const ogResized = resize(banner, 1200, Math.round(banner.h * (1200 / banner.w)));
 const box = contentBBox(ogResized, 12);

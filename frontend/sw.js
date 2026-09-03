@@ -4,6 +4,8 @@ const ASSETS = [
   "./index.html",
   "./manifest.webmanifest",
   "./favicon-32.png",
+  "./favicon-48.png",
+  "./favicon.ico",
   "./icon-192.png",
   "./icon-512.png",
   "./apple-touch-icon-180.png"
