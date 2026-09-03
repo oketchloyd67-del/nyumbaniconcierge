@@ -300,8 +300,8 @@
     .container { padding: 0 18px; }
     .header-inner { padding: 12px 18px; flex-wrap: nowrap; }
     .nav-toggle { display: flex; }
-    .site-nav { display: none; flex-direction: column; align-items: stretch; gap: 2px; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--green); border-top: 1px solid rgba(255,255,255,0.15); padding: 12px 24px 20px; box-shadow: 0 20px 34px rgba(0,0,0,0.32); }
-    .site-nav.open { display: flex; }
+    .site-nav { display: flex; flex-direction: column; align-items: stretch; gap: 2px; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--green); border-top: 1px solid rgba(255,255,255,0.15); padding: 12px 24px 20px; box-shadow: 0 20px 34px rgba(0,0,0,0.32); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s linear 0.22s; pointer-events: none; }
+    .site-nav.open { opacity: 1; visibility: visible; transform: translateY(0); transition: opacity 0.22s ease, transform 0.22s ease, visibility 0s; pointer-events: auto; }
     .site-nav a { padding: 11px 4px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 1rem; }
     .site-nav a.active:not(.nav-cta):not(.has-items) { border-left: 4px solid var(--gold); color: var(--gold); padding-left: 12px; font-weight: 700; }
     .site-nav a.nav-cta { text-align: center; border-bottom: none; margin-top: 10px; align-self: center; padding: 10px 40px; }
