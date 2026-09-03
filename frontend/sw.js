@@ -1,9 +1,3 @@
-/* ============================================================
-   Nyumbani Concierge — service worker
-   Caches the app shell so the site opens and works offline,
-   and enables install-as-app (PWA) on phones, PCs and tablets.
-   Bump VERSION to force a refresh of the cache.
-   ============================================================ */
 const VERSION = "nyumbani-v1";
 const ASSETS = [
   "./",
@@ -37,7 +31,6 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  // Cache-first, falling back to the network, refreshing the cache in the background.
   e.respondWith(
     caches.match(req).then((cached) => {
       const fetched = fetch(req)

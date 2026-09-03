@@ -1,19 +1,3 @@
-/* ============================================================
-   Nyumbani Concierge — server (Node + Express)
-   - Accounts (register / login / session token)
-   - M-Pesa payments via Tuma (STK push) — integration copied from
-     the semacheck project (services/tuma.js + routes/payments.js)
-   - Bank transfer confirmations
-   - Order & report storage (JSON files)
-
-   Run:
-     cd server
-     npm install
-     npm start
-   Public callback URL (dev): ngrok http 3000
-     -> set TUMA_CALLBACK_URL=https://xxxx.ngrok.io/api/callback in .env
-   ============================================================ */
-
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
@@ -24,9 +8,6 @@ require("dotenv").config();
 const app = express();
 app.use(express.json());
 
-/* CORS — the frontend is hosted separately (Vercel / localhost) and calls this API
-   cross-origin. By default allow any origin (the API uses token auth, not cookies).
-   To restrict it, set CORS_ORIGINS to a comma-separated list of allowed origins. */
 app.use((req, res, next) => {
   const allowed = (process.env.CORS_ORIGINS || "")
     .split(",").map(s => s.trim()).filter(Boolean);
@@ -42,10 +23,8 @@ app.use((req, res, next) => {
   next();
 });
 
-/* ---------------- Config ---------------- */
 const PORT = process.env.PORT || 3000;
 
-// --- Tuma payment gateway (api.tuma.co.ke) — handles M-Pesa STK Push ---
 const TUMA_BASE_URL = process.env.TUMA_BASE_URL || "https://api.tuma.co.ke";
 const TUMA_EMAIL = process.env.TUMA_EMAIL || "";
 const TUMA_API_KEY = process.env.TUMA_API_KEY || "";
@@ -56,7 +35,6 @@ const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const REPORTS_FILE = path.join(DATA_DIR, "reports.json");
 
-/* ---------------- JSON stores ---------------- */
 function loadFile(file, fallback) { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return fallback; } }
 function saveFile(file, data) { if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(file, JSON.stringify(data, null, 2)); }
 const loadOrders = () => loadFile(ORDERS_FILE, []);
@@ -68,7 +46,6 @@ const saveReports = r => saveFile(REPORTS_FILE, r);
 const getOrder = id => loadOrders().find(o => o.id === id);
 const patchOrder = (id, patch) => { const o = loadOrders(); const x = o.find(r => r.id === id); if (!x) return null; Object.assign(x, patch); saveOrders(o); return x; };
 
-/* ---------------- Tuma auth (copied from semacheck services/tuma.js) ---------------- */
 let cachedToken = null;
 let cachedTokenExpiresAt = 0;
 
@@ -100,7 +77,6 @@ async function getTumaToken() {
   return cachedToken;
 }
 
-/* Tuma STK push (copied from semacheck services/tuma.js stkPush) */
 async function tumaStkPush({ phone, amount, description }) {
   const token = await getTumaToken();
   const res = await fetch(`${TUMA_BASE_URL}/payment/stk-push`, {
@@ -114,10 +90,9 @@ async function tumaStkPush({ phone, amount, description }) {
     err.code = "TUMA_STK_FAILED";
     throw err;
   }
-  return data.data;   // { checkout_request_id, merchant_request_id, ... }
+  return data.data;
 }
 
-/* Tuma payment status query (copied from semacheck queryPaymentStatus) */
 async function tumaPaymentStatus(checkoutRequestId) {
   try {
     const token = await getTumaToken();
@@ -130,11 +105,9 @@ async function tumaPaymentStatus(checkoutRequestId) {
   }
 }
 
-/* ---------------- Routes: static + health ---------------- */
 app.use(express.static(path.join(__dirname, "..", "public")));
 app.get("/api/health", (req, res) => res.json({ ok: true, mode: TUMA_API_KEY ? "configured" : "no-credentials" }));
 
-/* ---------------- Routes: accounts ---------------- */
 app.post("/api/register", (req, res) => {
   const { name, email, phone, pass } = req.body || {};
   if (!name || !email || !pass) return res.status(400).json({ error: "Name, email and password required" });
@@ -160,7 +133,6 @@ function authUser(req) {
 }
 app.get("/api/me", (req, res) => { const u = authUser(req); u ? res.json({ user: u }) : res.status(401).json({ error: "Not logged in" }); });
 
-/* ---------------- Routes: orders & reports ---------------- */
 app.post("/api/orders", (req, res) => {
   const u = authUser(req); if (!u) return res.status(401).json({ error: "Log in first" });
   const { id, method, items, total } = req.body || {};
@@ -183,7 +155,6 @@ app.post("/api/reports", (req, res) => {
   res.json({ ok: true });
 });
 
-/* ---------------- Routes: Tuma STK push ---------------- */
 app.post("/api/stkpush", async (req, res) => {
   try {
     const { orderId, phone, amount } = req.body || {};
@@ -205,9 +176,8 @@ app.post("/api/stkpush", async (req, res) => {
   }
 });
 
-/* Tuma callback (fields per semacheck routes/payments.js) */
 app.post("/api/callback", (req, res) => {
-  res.json({ received: true });   // acknowledge Tuma immediately
+  res.json({ received: true });
   try {
     const { status, checkout_request_id, result_code, mpesa_receipt_number, failure_reason } = req.body || {};
     if (!checkout_request_id) { console.warn("Tuma callback: missing checkout_request_id"); return; }
@@ -228,14 +198,12 @@ app.post("/api/callback", (req, res) => {
   }
 });
 
-/* Order status (frontend polls this after an STK push) */
 app.get("/api/orders/:id", (req, res) => {
   const o = getOrder(req.params.id);
   if (!o) return res.status(404).json({ error: "Not found" });
   res.json({ id: o.id, status: o.status, txnId: o.txnId, method: o.method });
 });
 
-/* Manual bank-transfer confirmation (owner marks order paid after checking the account) */
 app.post("/api/orders/:id/confirm", (req, res) => {
   const o = patchOrder(req.params.id, { status: "paid" });
   o ? res.json({ ok: true }) : res.status(404).json({ error: "Not found" });

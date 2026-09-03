@@ -1,17 +1,3 @@
-/* ============================================================
-   Nyumbani Concierge — build the site assets FROM the brand
-   images in assets/ (pure Node, built-in zlib only).
-   Run:  node make-assets.js
-   Sources (assets/, added by the owner):
-     file_..._10348211a66ab9925b90b73c.png  1672x940   logo banner (wide)
-     file_..._27a08211a830d00186ef7182.png  1254x1254  circular badge icon
-     file_..._aed482118bdb0061be83fb8d.png  1254x1254  squircle app icon
-     file_..._b5208211a4c8428fbeed3a68.png  2172x724   horizontal logo
-   Outputs (this folder, used by index.html / manifest / sw):
-     favicon-32.png, icon-192.png, icon-512.png,
-     icon-512-maskable.png, apple-touch-icon-180.png,
-     og-image.png
-   ============================================================ */
 const zlib = require("zlib");
 const fs = require("fs");
 const path = require("path");
@@ -19,11 +5,10 @@ const path = require("path");
 const SRC = (name) => path.join(__dirname, "assets", name);
 const OUT = (name) => path.join(__dirname, name);
 
-const BANNER = "file_0000000010348211a66ab9925b90b73c.png";   // 1672x940  logo banner
-const CIRCLE = "file_0000000027a08211a830d00186ef7182.png";   // 1254x1254 circular badge
-const HLOGO  = "file_00000000b5208211a4c8428fbeed3a68.png";   // 2172x724 horizontal logo
+const BANNER = "file_0000000010348211a66ab9925b90b73c.png";
+const CIRCLE = "file_0000000027a08211a830d00186ef7182.png";
+const HLOGO  = "file_00000000b5208211a4c8428fbeed3a68.png";
 
-/* ---------------- PNG decode / encode ---------------- */
 const CRC_TABLE = (() => {
   const t = new Int32Array(256);
   for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c; }
@@ -53,7 +38,7 @@ function decodePNG(file) {
     off += 12 + len;
   }
   const raw = zlib.inflateSync(Buffer.concat(idat));
-  const bpp = colorType === 6 ? 4 : colorType === 2 ? 3 : 1;   // bytes per pixel
+  const bpp = colorType === 6 ? 4 : colorType === 2 ? 3 : 1;
   const stride = w * bpp;
   const rgba = Buffer.alloc(w * h * 4);
   const prev = Buffer.alloc(stride);
@@ -97,7 +82,6 @@ function encodePNG(width, height, rgba) {
   ]);
 }
 
-/* ---------------- area-average resize (premultiplied, no dark fringes) ---------------- */
 function resize(img, dstW, dstH) {
   const { w: sw, h: sh, rgba } = img;
   const out = Buffer.alloc(dstW * dstH * 4);
@@ -134,7 +118,6 @@ function resize(img, dstW, dstH) {
   return { w: dstW, h: dstH, rgba: out };
 }
 
-/* ---------------- helpers ---------------- */
 function sample(img, x, y) { const i = (y * img.w + x) * 4; return [img.rgba[i], img.rgba[i + 1], img.rgba[i + 2], img.rgba[i + 3]]; }
 function fillTransparent(img, r, g, b) {
   for (let i = 3; i < img.rgba.length; i += 4) if (img.rgba[i] < 10) { img.rgba[i - 3] = r; img.rgba[i - 2] = g; img.rgba[i - 1] = b; img.rgba[i] = 255; }
@@ -158,21 +141,17 @@ function cropY(img, top, height) {
   return { w: img.w, h: height, rgba: out };
 }
 
-/* ---------------- build ---------------- */
 console.log("Reading brand assets from assets/ ...");
-const circle = decodePNG(SRC(CIRCLE));     // 1254x1254 badge
-const banner = decodePNG(SRC(BANNER));     // 1672x940 wide logo
+const circle = decodePNG(SRC(CIRCLE));
+const banner = decodePNG(SRC(BANNER));
 
 const write = (name, buf) => { fs.writeFileSync(OUT(name), buf); console.log("wrote " + name + " (" + buf.length + " bytes)"); };
 
-// 1) PWA icons from the circular badge
 write("favicon-32.png", encodePNG(32, 32, resize(circle, 32, 32).rgba));
 write("icon-192.png", encodePNG(192, 192, resize(circle, 192, 192).rgba));
 write("icon-512.png", encodePNG(512, 512, resize(circle, 512, 512).rgba));
 write("icon-512-maskable.png", encodePNG(512, 512, resize(circle, 512, 512).rgba));
 
-// 2) apple-touch-icon: opaque (iOS ignores alpha) — fill the background with the
-// badge's dark-blue interior (average of a few samples inside the globe area)
 function findInteriorColor(img) {
   const pts = [[0.5, 0.28], [0.5, 0.72], [0.28, 0.5], [0.72, 0.5]];
   let r = 0, g = 0, b = 0, n = 0;
@@ -189,11 +168,10 @@ console.log("  interior color found:", bg.join(","));
 fillTransparent(apple, bg[0], bg[1], bg[2]);
 write("apple-touch-icon-180.png", encodePNG(180, 180, apple.rgba));
 
-// 3) og-image 1200x630 from the wide logo banner (resize, then content-aware center crop)
-const ogResized = resize(banner, 1200, Math.round(banner.h * (1200 / banner.w)));   // 1200x675
+const ogResized = resize(banner, 1200, Math.round(banner.h * (1200 / banner.w)));
 const box = contentBBox(ogResized, 12);
 const windowH = 630;
-// anchor the crop on the bottom of the content so the tagline is never clipped
+
 let top = Math.max(0, Math.min(box.maxY - windowH, ogResized.h - windowH));
 write("og-image.png", encodePNG(1200, windowH, cropY(ogResized, top, windowH).rgba));
 console.log("  og crop: y " + top + ".." + (top + windowH) + " of " + ogResized.h + " (content " + box.minY + "-" + box.maxY + ")");

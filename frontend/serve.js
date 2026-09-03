@@ -1,5 +1,3 @@
-/* Minimal static file server (zero deps) — preview the real site locally:
-   node serve.js  →  http://localhost:8123/  */
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
