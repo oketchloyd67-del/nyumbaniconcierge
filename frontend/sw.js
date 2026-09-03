@@ -1,4 +1,4 @@
-const VERSION = "nyumbani-v1";
+const VERSION = "nyumbani-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,6 +32,19 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+
+  if (req.mode === "navigate") {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(VERSION).then((c) => c.put(req, clone));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
 
   e.respondWith(
     caches.match(req).then((cached) => {
