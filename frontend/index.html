@@ -11,6 +11,7 @@
   <meta name="theme-color" content="#0c3b1f">
   <meta name="geo.region" content="KE">
   <meta name="geo.placename" content="Nairobi">
+  <meta name="google-site-verification" content="iNR9VWGViIdrMkusJTIqT84mATPGZ9ekELoPHcjsgbA" />
   <link rel="canonical" href="https://nyumbaniconcierge.vercel.app/">
   <link rel="icon" type="image/png" href="favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -97,7 +98,7 @@
 
   :root {
     --green: #14532d; --green-deep: #0c3b1f; --green-soft: #eaf2ec;
-    --gold: #d9a514; --gold-dark: #b8890e; --cream: #faf6ec;
+    --gold: #d9a514; --gold-dark: #8a6414; --cream: #faf6ec;
     --ink: #242a2f; --slate: #5f6a72; --white: #ffffff; --red: #c0392b;
     --shadow: 0 10px 30px rgba(12, 59, 31, 0.12); --radius: 14px;
   }
@@ -155,7 +156,7 @@
   .btn-dark:hover { background: var(--green-deep); }
   .btn-outline { background: transparent; color: var(--green); border: 2px solid var(--green); }
   .btn-outline:hover { background: var(--green-soft); }
-  .btn-wa { background: #25d366; color: #fff; }
+  .btn-wa { background: #25d366; color: var(--green-deep); }
   .btn-wa:hover { background: #1eb955; }
   .btn-sm { padding: 7px 14px; font-size: 0.85rem; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -282,8 +283,8 @@
   .footer-email, .footer-wa { display: inline-flex; align-items: center; gap: 10px; padding: 13px 30px; font-size: 1rem; border-radius: 999px; box-shadow: 0 6px 18px rgba(0,0,0,0.25); transition: transform 0.2s ease, filter 0.2s ease; }
   .footer-email { background: var(--green); border: 2px solid rgba(255,255,255,0.35); color: #fff; }
   .footer-email:hover { transform: translateY(-2px); filter: brightness(1.15); }
-  .footer-wa { background: #25d366; color: #fff; }
-  .footer-wa:hover { background: #1eb955; transform: translateY(-2px); }
+  .site-footer .footer-wa { background: #25d366; color: var(--green-deep); }
+  .site-footer .footer-wa:hover { background: #1eb955; transform: translateY(-2px); }
   .footer-email svg, .footer-wa svg { width: 20px; height: 20px; }
 
   @media (max-width: 880px) {
@@ -332,7 +333,7 @@
 
 <header class="site-header">
   <div class="container header-inner">
-    <a class="brand" data-nav="home" aria-label="Nyumbani Concierge — home">
+    <a class="brand" data-nav="home" href="#/home" aria-label="Nyumbani Concierge — home">
       <img class="brand-logo" src="assets/file_00000000b5208211a4c8428fbeed3a68.png" alt="Nyumbani Concierge — Your trusted back-home partner">
     </a>
     <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="siteNav">
@@ -563,11 +564,11 @@ const CONFIG = {
 const apiUrl = (p) => (CONFIG.apiBase ? CONFIG.apiBase.replace(/\/+$/, "") : "") + p;
 
 const SOCIALS = [
-  { name: "Facebook", url: "https://www.facebook.com/share/19Jz5ax8Ta/", bg: "#1877F2", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/></svg>' },
+  { name: "Facebook", url: "https://www.facebook.com/share/19Jz5ax8Ta/", bg: "#0b5bd3", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/></svg>' },
   { name: "Instagram", url: "https://www.instagram.com/bit_coiner.69", bg: "radial-gradient(circle at 30% 110%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%)", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.1 0-3.5 0-4.8.1-1.1.1-1.5.2-1.8.3-.5.2-.8.4-1.1.7-.3.3-.5.6-.7 1.1-.1.3-.3.7-.3 1.8-.1 1.3-.1 1.7-.1 4.8s0 3.5.1 4.8c.1 1.1.2 1.5.3 1.8.2.5.4.8.7 1.1.3.3.6.5 1.1.7.3.1.7.3 1.8.3 1.3.1 1.7.1 4.8.1s3.5 0 4.8-.1c1.1-.1 1.5-.2 1.8-.3.5-.2.8-.4 1.1-.7.3-.3.5-.6.7-1.1.1-.3.3-.7.3-1.8.1-1.3.1-1.7.1-4.8s0-3.5-.1-4.8c-.1-1.1-.2-1.5-.3-1.8-.2-.5-.4-.8-.7-1.1-.3-.3-.6-.5-1.1-.7-.3-.1-.7-.3-1.8-.3-1.3-.1-1.7-.1-4.8-.1zm0 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 1.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4zm5.2-3.1a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/></svg>' },
   { name: "X", url: "https://x.com/story_hero69", bg: "#000000", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.3l7.3-8.3L1.2 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.7H5.3L17.8 20z"/></svg>' },
   { name: "TikTok", url: "https://www.tiktok.com/@bit_coiner.69", bg: "#010101", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.8A5 5 0 0 1 18.9 3h2.2v3.6a5 5 0 0 1-5 5c-.7 0-1.4-.1-2-.4v5.6a6 6 0 1 1-6-6c.4 0 .7 0 1 .1v3.7a2.3 2.3 0 1 0 2.4 2.3V3h3.1v2.8z"/></svg>' },
-  { name: "YouTube", url: "https://youtube.com/@bit_coiner", bg: "#FF0000", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.5 12 4.5 12 4.5s-7 0-8.9.6A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.6 8.9.6 8.9.6s7 0 8.9-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 23.5 12 31 31 0 0 0 23 7.2zM9.8 15.3V8.7l6 3.3z"/></svg>' },
+  { name: "YouTube", url: "https://youtube.com/@bit_coiner", bg: "#cc0000", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.5 12 4.5 12 4.5s-7 0-8.9.6A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.6 8.9.6 8.9.6s7 0 8.9-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 23.5 12 31 31 0 0 0 23 7.2zM9.8 15.3V8.7l6 3.3z"/></svg>' },
   { name: "LinkedIn", url: "https://www.linkedin.com/in/semacheck-undefined-7549b5432", bg: "#0A66C2", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.7-2 4 0 4.7 2.6 4.7 6V21h-4v-5.5c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9V21H9z"/></svg>' },
   { name: "Threads", url: "https://www.threads.com/@semacheck254", bg: "#000000", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.2 2c2 0 3.6.4 4.8 1.3 1.2.9 1.9 2.1 2.2 3.7l-1.9.4c-.2-1.2-.8-2.2-1.7-2.8-.9-.7-2-1-3.4-1-1.6 0-2.8.4-3.6 1.1-.9.8-1.3 1.9-1.3 3.2 0 1 .2 1.7.7 2.3.4.5 1 .9 1.7 1.2-.7.2-1.3.6-1.8 1.1-.7.8-1 1.8-1 3 0 1.3.5 2.4 1.5 3.2.9.7 2.2 1.1 3.8 1.1 1.8 0 3.2-.5 4.2-1.5 1-1 1.6-2.5 1.7-4.4-1.6.4-3 .4-4.3.2-1-.2-1.8-.6-2.4-1.2l1.3-1.5c.6.5 1.3.9 2.1 1 .7.1 2.1.1 3.8-.4.3-1.8 0-3.4-1-4.8C17.2 3 15.4 2 12.2 2zm-2.9 8.2c-.7-.6-1-1.5-1-2.7 0-1.9 1.3-3.3 4-3.3 2.1 0 3.5.9 4.2 2.4-1.5.6-3.2 1-4.9 1-.5 0-1.4-.1-2.3-.2zm5 7.2c-.4.4-1 .6-1.8.6-1.7 0-2.8-.8-2.8-2.1 0-.8.3-1.4.9-1.8.5-.4 1.1-.6 1.9-.6 1 0 2.2.3 3.5.8-.2 1.2-.6 2.1-1.2 2.6-.2.2-.4.4-.5.5z"/></svg>' }
 ];
