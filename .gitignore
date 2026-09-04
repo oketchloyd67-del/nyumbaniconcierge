@@ -1,0 +1,11 @@
+# Secrets — never commit
+server/.env
+
+# Local dev data (real user data in JSON-fallback mode)
+server/data/
+
+# Dependencies, logs, OS junk
+node_modules/
+*.log
+.DS_Store
+Thumbs.db

@@ -566,13 +566,21 @@ const CONFIG = {
   whatsappNumber: "0714589375",
   whatsappLink: "https://wa.me/254714589375",
   email: "semacheck254@gmail.com",
-  adminPasscode: "nyumbani2026",
   tumaTill: "000000",
 
-  apiBase: "https://nyumbani-concierge-api.onrender.com"
+  apiBase: "http://localhost:3000"
 };
+try { localStorage.setItem("nc_api_base", CONFIG.apiBase); } catch {}
 
 const apiUrl = (p) => (CONFIG.apiBase ? CONFIG.apiBase.replace(/\/+$/, "") : "") + p;
+async function apiJson(p, opts = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = "Bearer " + token;
+  const r = await fetch(apiUrl(p), { method: opts.method || "GET", headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(data.error || "Request failed"); e.status = r.status; throw e; }
+  return data;
+}
 
 const SOCIALS = [
   { name: "Facebook", url: "https://www.facebook.com/share/19Jz5ax8Ta/", bg: "#0b5bd3", svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/></svg>' },
@@ -624,7 +632,7 @@ let users = store.get("nc_users", []);
 let reports = store.get("nc_reports", []);
 let requests = store.get("nc_requests", []);
 let session = store.get("nc_session", null);
-let adminOk = store.get("nc_admin_ok", false);
+let token = store.get("nc_token", null);
 
 let toastTimer;
 function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600); }
@@ -638,19 +646,36 @@ function renderNavAuth() {
   el.href = "#/account";
 }
 function saveAll() { store.set("nc_orders", orders); store.set("nc_users", users); store.set("nc_reports", reports); store.set("nc_requests", requests); }
-function register(name, email, phone, pass) {
-  if (users.find(u => u.email.toLowerCase() === email.toLowerCase() || (phone && u.phone === phone))) return { error: "An account with this email/phone already exists — log in instead." };
-  const u = { id: "u" + Date.now(), name: name.trim(), email: email.trim(), phone: (phone || "").trim(), pass };
-  users.push(u); session = u.id; store.set("nc_session", session); saveAll();
-  return { ok: true };
+function adoptSession(d) {
+  token = d.token; store.set("nc_token", token);
+  const u = d.user;
+  users = users.filter(x => x.id !== u.id); users.unshift(u);
+  session = u.id; store.set("nc_session", session); saveAll();
 }
-function login(identifier, pass) {
-  const u = users.find(x => (x.email.toLowerCase() === identifier.toLowerCase()) || (x.phone && x.phone === identifier));
-  if (!u || u.pass !== pass) return { error: "Wrong email/phone or password." };
-  session = u.id; store.set("nc_session", session);
-  return { ok: true };
+async function register(name, email, phone, pass) {
+  if (!name || !email || !pass) return { error: "Name, email and password are required." };
+  try { adoptSession(await apiJson("/api/register", { method: "POST", body: { name, email, phone, pass } })); return { ok: true }; }
+  catch (e) { return { error: e.status === 409 ? "An account with this email already exists — log in instead." : (e.message || "Server unreachable — try again shortly") }; }
 }
-function logout() { session = null; store.set("nc_session", null); toast("Logged out"); route(); }
+async function login(identifier, pass) {
+  try { adoptSession(await apiJson("/api/login", { method: "POST", body: { identifier, pass } })); return { ok: true }; }
+  catch (e) { return { error: e.status === 401 ? "Wrong email/phone or password." : (e.message || "Server unreachable — try again shortly") }; }
+}
+async function restoreSession() {
+  if (!token) return;
+  try {
+    const d = await apiJson("/api/me");
+    users = users.filter(x => x.id !== d.user.id); users.unshift(d.user);
+    session = d.user.id; store.set("nc_session", session); saveAll();
+  } catch {
+    token = null; store.set("nc_token", null); session = null; store.set("nc_session", null);
+  }
+}
+function logout() {
+  token = null; store.set("nc_token", null); session = null; store.set("nc_session", null);
+  users = []; orders = []; reports = []; requests = []; saveAll();
+  toast("Logged out"); route();
+}
 
 const ROUTES = { "": "home", "home": "home", "services": "services", "request": "request", "checkout": "checkout", "pay": "pay", "receipt": "receipt", "reports": "reports", "orders": "orders", "account": "account", "contact": "contact" };
 function route() {
@@ -729,11 +754,13 @@ function renderCheckout() {
       </div>
       <button type="button" class="btn btn-primary" id="continuePay" style="width:100%;margin-top:16px" disabled>Continue to payment</button>
     </div></div>`;
-  document.getElementById("continuePay").addEventListener("click", () => {
+  document.getElementById("continuePay").addEventListener("click", async () => {
     if (!selectedMethod) return toast("Choose a payment method first");
     if (cart.length === 0) return toast("Your cart is empty");
-    const order = createOrder(selectedMethod);
-    location.hash = "#/pay/" + selectedMethod + "/" + order.id;
+    const btn = document.getElementById("continuePay"); if (btn) btn.disabled = true;
+    try { const order = await createOrder(selectedMethod); location.hash = "#/pay/" + selectedMethod + "/" + order.id; }
+    catch (e) { toast(e.message || "Could not place the order — try again"); }
+    finally { if (btn) btn.disabled = false; }
   });
 }
 let selectedMethod = null;
@@ -743,19 +770,25 @@ function selectMethod(card) {
   const btn = document.getElementById("continuePay"); if (btn) btn.disabled = false;
 }
 
-function createOrder(method) {
+async function createOrder(method) {
   const id = "NC-" + new Date().getFullYear() + "-" + String(Date.now()).slice(-4) + String(Math.floor(Math.random() * 90) + 10);
   const order = { id, date: new Date().toISOString(), method, userId: session,
     items: cart.map(l => { const s = SERVICES.find(x => x.id === l.id); return { id: s.id, name: s.name, qty: l.qty, price: s.price }; }),
     total: cartTotal(), status: "pending", txnId: null, phone: null, bankRef: null };
-  orders.unshift(order); saveAll();
+  await apiJson("/api/orders", { method: "POST", body: order });
+  orders = orders.filter(o => o.id !== id); orders.unshift(order); saveAll();
   cart = []; saveCart(); updateNavCart();
   return order;
 }
 const getOrder = id => orders.find(o => o.id === id);
 function updateOrder(id, patch) { const o = getOrder(id); if (o) Object.assign(o, patch); saveAll(); }
 const userOrders = () => orders.filter(o => o.userId === session);
-function renderOrders() {
+async function refreshOrders() {
+  if (!token) return;
+  try { const list = await apiJson("/api/orders"); if (Array.isArray(list)) { orders = list; saveAll(); } } catch {}
+}
+async function renderOrders() {
+  await refreshOrders();
   const box = document.getElementById("ordersList");
   if (!currentUser()) { box.innerHTML = `<div class="alert alert-warn">Please <a href="#/account">log in</a> to see your orders.</div>`; return; }
   const list = userOrders();
@@ -831,29 +864,50 @@ function confirmStk(order, phone) {
 }
 async function pollOrderStatus(orderId) {
   const iv = setInterval(async () => {
-    try { const r = await fetch(apiUrl("/api/orders/" + orderId)); const o = await r.json();
-      if (o && (o.status === "paid" || o.status === "awaiting")) { clearInterval(iv); const l = getOrder(orderId); if (l) updateOrder(orderId, { status: o.status, txnId: o.txnId }); location.hash = "#/receipt/" + orderId; } } catch {}
+    try {
+      const o = await apiJson("/api/orders/" + orderId);
+      if (o && (o.status === "paid" || o.status === "awaiting" || o.status === "failed")) {
+        clearInterval(iv);
+        const l = getOrder(orderId); if (l) updateOrder(orderId, { status: o.status, txnId: o.txnId, phone: o.phone });
+        if (o.status === "failed") { toast("Payment was not completed — try again"); }
+        else location.hash = "#/receipt/" + orderId;
+      }
+    } catch {}
   }, 2500);
 }
 function renderBankPay(order) {
   const panel = document.getElementById("payPanel");
   panel.innerHTML = `
-    <div class="pay-details">Bank: <code>[Equity / I&amp;M / KCB]</code> · Account: <code>[YOUR BUSINESS NAME]</code><br>
-    Account No: <code>[0000000000]</code> · Branch: <code>[NAIROBI]</code> · SWIFT: <code>[XXXXXX]</code><br>
+    <div class="pay-details">Bank: <code>Family Bank (Kenya)</code> · Account: <code>Loyd Akoth</code><br>
+    Account No: <code>028000055803</code> · Branch: <code>Kisumu Express</code> · SWIFT: <code>FABLKENA</code><br>
     <small>International (USD/GBP/EUR) transfers via diaspora banking accepted. Amount due: <strong>${fmt(order.total)}</strong>.</small></div>
     <div class="field"><label for="bankRef">Your bank reference / name used</label><input id="bankRef" type="text" placeholder="e.g. John M. or your order id"></div>
     <button type="button" class="btn btn-primary" id="bankConfirm" style="width:100%">I have transferred — confirm</button>
     <div class="alert alert-warn" style="margin-top:14px">We confirm bank transfers manually before starting the job. Expect confirmation within one working day.</div>`;
-  document.getElementById("bankConfirm").addEventListener("click", () => {
+  document.getElementById("bankConfirm").addEventListener("click", async () => {
     const ref = (document.getElementById("bankRef")?.value || "").trim();
     if (!ref) return toast("Enter your bank reference");
-    updateOrder(order.id, { status: "awaiting", bankRef: ref });
-    toast("We've noted your transfer — confirming shortly"); location.hash = "#/receipt/" + order.id;
+    const btn = document.getElementById("bankConfirm"); if (btn) btn.disabled = true;
+    try {
+      await apiJson("/api/orders/" + order.id + "/banknote", { method: "POST", body: { bankRef: ref } });
+      updateOrder(order.id, { status: "awaiting", bankRef: ref });
+      toast("We've noted your transfer — confirming shortly"); location.hash = "#/receipt/" + order.id;
+    } catch (e) { toast(e.message || "Could not record your transfer — try again"); }
+    finally { if (btn) btn.disabled = false; }
   });
 }
 
-function renderReceipt(orderId) {
+async function renderReceipt(orderId) {
   const box = document.getElementById("receipt");
+  if (token) {
+    try {
+      const remote = await apiJson("/api/orders/" + orderId);
+      const l = getOrder(orderId);
+      if (l) { l.status = remote.status; if (remote.txnId) l.txnId = remote.txnId; if (remote.bankRef) l.bankRef = remote.bankRef; }
+      else orders.unshift(remote);
+      saveAll();
+    } catch {}
+  }
   const order = getOrder(orderId);
   if (!order) { box.innerHTML = `<p class="cart-empty">Receipt not found. <a href="#/orders">My orders</a>.</p>`; return; }
   const chip = order.status === "paid" ? '<span class="status-chip status-paid">Paid</span>' : order.status === "awaiting" ? '<span class="status-chip status-awaiting">Awaiting confirmation</span>' : '<span class="status-chip status-pending">Pending</span>';
@@ -868,7 +922,12 @@ function renderReceipt(orderId) {
 }
 document.getElementById("printReceipt")?.addEventListener("click", () => window.print());
 
-function renderReports() {
+async function refreshReports() {
+  if (!token) return;
+  try { const list = await apiJson("/api/reports"); if (Array.isArray(list)) { reports = list; saveAll(); } } catch {}
+}
+async function renderReports() {
+  await refreshReports();
   const box = document.getElementById("reportsList");
   if (!currentUser()) { box.innerHTML = `<div class="alert alert-warn">Please <a href="#/account">log in</a> — reports are posted to your account.</div>`; return; }
   const mine = reports.filter(r => r.userId === session).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -891,17 +950,18 @@ function renderRequest() {
     document.getElementById("reqContact").value = u.phone || u.email;
   }
 }
-document.getElementById("reqSubmit").addEventListener("click", () => {
+document.getElementById("reqSubmit").addEventListener("click", async () => {
   const name = document.getElementById("reqName").value.trim();
   const contact = document.getElementById("reqContact").value.trim();
   const text = document.getElementById("reqText").value.trim();
   const box = document.getElementById("reqResult");
   if (!name || !contact || !text) { box.innerHTML = `<div class="alert alert-warn">Please fill in your name, contact and the request.</div>`; return; }
-  requests.unshift({ id: "RQ-" + Date.now().toString().slice(-8), userId: session, name, contact, text, date: new Date().toISOString(), status: "new" });
-  saveAll();
-  box.innerHTML = `<div class="alert alert-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><strong>Request received</strong> I'll reply with a fixed quote on ${contact}. For anything urgent, <a href="${CONFIG.whatsappLink}" target="_blank" rel="noopener">message me now on WhatsApp</a>.</div>`;
-  document.getElementById("reqText").value = "";
-  toast("Request submitted");
+  try {
+    await apiJson("/api/requests", { method: "POST", body: { userId: session, name, contact, text } });
+    box.innerHTML = `<div class="alert alert-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><strong>Request received</strong> I'll reply with a fixed quote on ${contact}. For anything urgent, <a href="${CONFIG.whatsappLink}" target="_blank" rel="noopener">message me now on WhatsApp</a>.</div>`;
+    document.getElementById("reqText").value = "";
+    toast("Request submitted");
+  } catch { box.innerHTML = `<div class="alert alert-warn">Could not send the request right now — please try again in a moment or message me on WhatsApp.</div>`; }
 });
 
 let authTab = "login";
@@ -917,13 +977,8 @@ function renderAccount() {
         <p class="section-note">${u.email}${u.phone ? " · " + u.phone : ""}</p>
         <p><a class="btn btn-outline btn-sm" href="#/orders">My orders</a> <a class="btn btn-outline btn-sm" href="#/reports">My Reports</a></p>
         <button type="button" class="btn btn-dark" id="logoutBtn" style="margin-top:10px">Log out</button>
-      </div>
-      <div class="panel" style="margin-top:16px">
-        <h3>Owner panel</h3>
-        <div id="ownerPanel"></div>
       </div>`;
     document.getElementById("logoutBtn").addEventListener("click", logout);
-    renderOwnerPanel(box);
     return;
   }
   title.textContent = "Create your free account";
@@ -945,8 +1000,8 @@ function renderAccount() {
       <div class="field"><label>Password</label><input id="regPass" type="password" placeholder="Choose a password"></div>
       <button type="button" class="btn btn-primary" id="regBtn" style="width:100%">Create free account</button>
       <p class="section-note" style="margin-top:12px">Free. Your orders, receipts and reports are saved to your account.</p>`;
-    document.getElementById("regBtn").addEventListener("click", () => {
-      const r = register(document.getElementById("regName").value, document.getElementById("regEmail").value, document.getElementById("regPhone").value, document.getElementById("regPass").value);
+    document.getElementById("regBtn").addEventListener("click", async () => {
+      const r = await register(document.getElementById("regName").value, document.getElementById("regEmail").value, document.getElementById("regPhone").value, document.getElementById("regPass").value);
       if (r.error) return toast(r.error);
       toast("Account created"); route();
     });
@@ -956,56 +1011,13 @@ function renderAccount() {
       <div class="field"><label>Password</label><input id="logPass" type="password" placeholder="Your password"></div>
       <button type="button" class="btn btn-primary" id="logBtn" style="width:100%">Log in</button>
       <p class="section-note" style="margin-top:12px">New here? Switch to "Create account" — it takes 30 seconds.</p>`;
-    document.getElementById("logBtn").addEventListener("click", () => {
-      const r = login(document.getElementById("logId").value, document.getElementById("logPass").value);
+    document.getElementById("logBtn").addEventListener("click", async () => {
+      const r = await login(document.getElementById("logId").value, document.getElementById("logPass").value);
       if (r.error) return toast(r.error);
       toast("Welcome back"); route();
     });
   }
 }
-function renderOwnerPanel(root) {
-  const box = root.querySelector("#ownerPanel");
-  if (!adminOk) {
-    box.innerHTML = `<p class="section-note">Owner access — enter your passcode to post reports and view custom requests.</p>
-      <div class="field"><input id="adminPass" type="password" placeholder="Owner passcode"></div>
-      <button type="button" class="btn btn-dark btn-sm" id="adminUnlock">Unlock</button>`;
-    root.querySelector("#adminUnlock").addEventListener("click", () => {
-      if (document.getElementById("adminPass").value === CONFIG.adminPasscode) { adminOk = true; store.set("nc_admin_ok", true); renderOwnerPanel(root); toast("Owner panel unlocked"); }
-      else toast("Wrong passcode");
-    });
-    return;
-  }
-  const paidOrders = orders.filter(o => o.status === "paid");
-  const pendingReq = requests.filter(r => r.status === "new");
-  box.innerHTML = `
-    <div class="alert alert-ok" style="margin-bottom:12px">Owner mode on.</div>
-    <h3 style="font-size:1rem">Post a report</h3>
-    <div class="field"><label>Paid order</label><select id="repOrder">${paidOrders.length ? paidOrders.map(o => `<option value="${o.id}">${o.id} — ${fmt(o.total)}</option>`).join("") : '<option value="">No paid orders yet</option>'}</select></div>
-    <div class="field"><label>Report title</label><input id="repTitle" type="text" placeholder="e.g. Title search completed for LR 123/456"></div>
-    <div class="field"><label>Report details</label><textarea id="repBody" rows="3" placeholder="What was done, findings, receipts..."></textarea></div>
-    <div class="field"><label>Evidence link (optional — Drive/photos link)</label><input id="repLink" type="text" placeholder="https://..."></div>
-    <button type="button" class="btn btn-primary btn-sm" id="repPost">Post report</button>
-    <h3 style="font-size:1rem;margin-top:20px">Custom requests (${pendingReq.length})</h3>
-    <div id="reqList" style="font-size:0.9rem"></div>`;
-  box.querySelector("#repPost").addEventListener("click", () => {
-    const orderId = box.querySelector("#repOrder").value;
-    const title = box.querySelector("#repTitle").value.trim();
-    const body = box.querySelector("#repBody").value.trim();
-    const link = box.querySelector("#repLink").value.trim();
-    if (!orderId || !title || !body) return toast("Fill order, title and details");
-    const order = getOrder(orderId);
-    reports.unshift({ id: "RP-" + Date.now().toString().slice(-8), userId: order.userId, orderId, title, body, link, date: new Date().toISOString() });
-    saveAll();
-    toast("Report posted to the client's account");
-    box.querySelector("#repTitle").value = ""; box.querySelector("#repBody").value = ""; box.querySelector("#repLink").value = "";
-  });
-  const rl = box.querySelector("#reqList");
-  rl.innerHTML = pendingReq.length
-    ? pendingReq.map(r => `<div style="border:1px solid #eee;border-radius:8px;padding:10px;margin-bottom:8px"><strong>${r.name}</strong> · ${r.contact}<br>${r.text}<br><small style="color:var(--slate)">${new Date(r.date).toLocaleString("en-KE")} · <a href="#" onclick="markReq('${r.id}');return false">mark handled</a></small></div>`).join("")
-    : '<p class="section-note">No new requests.</p>';
-}
-function markReq(id) { const r = requests.find(x => x.id === id); if (r) r.status = "done"; saveAll(); toast("Marked handled"); route(); }
-
 function renderSocials() {
   const html = SOCIALS.map(s => `<a class="social-btn" href="${s.url}" target="_blank" rel="noopener" aria-label="${s.name}" style="background:${s.bg};color:#fff">${s.svg}${s.name}</a>`).join("");
   document.getElementById("socialRow").innerHTML = html;
@@ -1081,17 +1093,19 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => { navigator.serviceWorker.register("./sw.js").catch(() => {}); });
 }
 
+renderServices(); renderCheckout(); updateNavCart(); renderNavAuth(); renderSocials(); renderChips();
+route();
 let API_MODE = "demo";
-(async function detectApi() {
+(async function init() {
   try {
     const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
     const r = await fetch(apiUrl("/api/health"), { signal: ctrl.signal }); clearTimeout(t);
-    if (r.ok) { API_MODE = "live"; }
+    if (r.ok) API_MODE = "live";
   } catch {}
+  try { localStorage.setItem("nc_api_base", CONFIG.apiBase); } catch {}
+  await restoreSession();
+  renderNavAuth(); route();
 })();
-
-renderServices(); renderCheckout(); updateNavCart(); renderNavAuth(); renderSocials(); renderChips();
-route();
 </script>
 </body>
 </html>

@@ -20,17 +20,17 @@ sitemap, llms.txt).
 | Receipt | `#/receipt/:orderId` | Official receipt, printable / save-as-PDF |
 | My Reports | `#/reports` | Reports the owner posts for each paid service: photos, video links, documents, receipts |
 | Orders | `#/orders` | The logged-in client's orders with status chips |
-| Account | `#/account` | Register / login + **owner panel** (passcode: `nyumbani2026` — change it in `CONFIG`) |
+| Account | `#/account` | Register / login; clients manage their orders and reports here |
 | Contact | `#/contact` | WhatsApp button, email, and the seven social buttons |
 
-**Accounts:** free registration with name, email, phone and password. Orders and
-reports are tied to the account. Demo mode stores accounts/orders/reports in the
-browser (localStorage); live mode uses the server (`/api/register`, `/api/login`,
-`/api/orders`, `/api/reports`).
+**Accounts:** free registration with name, email, phone and password. Accounts,
+orders, reports and requests are stored on the server (`/api/register`, `/api/login`,
+`/api/orders`, `/api/reports`) — never in the browser.
 
-**Reports:** the owner unlocks the owner panel (Account page → passcode), picks a
-**paid** order, and posts the report (title, details, evidence link). The client
-sees it instantly in **My Reports** — and it's also sent on WhatsApp in real life.
+**Reports:** the owner posts the report (title, details, evidence link) for each
+**paid** order from the hidden admin dashboard (never linked from the public
+site — you reach it by its private URL). The client sees it
+instantly in **My Reports** — and it's also sent on WhatsApp in real life.
 
 **Chatbot:** floating chat widget. Answers come from the `BOT_QA` list (custom
 questions + **keyword matching** — edit the list in `index.html`). If nothing
@@ -155,11 +155,14 @@ Leave it `""` only for local development (same-origin on `http://localhost:3000`
 Search `index.html` for:
 1. **Brand** — "Nyumbani Concierge" (header, receipt, footer).
 2. **Tuma Till/Paybill** — `CONFIG.tumaTill` (`000000`) and `TUMA_SHORTCODE` in `.env`.
-3. **Bank details** — `[Equity / I&M / KCB]`, account number, SWIFT in the Pay page.
+3. **Bank details** — already set to Family Bank (Kenya) · Loyd Akoth ·
+   account 028000055803 · Branch: Kisumu Express · SWIFT FABLKENA in the
+   Pay page; update only if the account changes.
 4. **WhatsApp** — the number is hidden from visitors by design (only in
    `CONFIG.whatsappLink`); no action needed unless it changes.
 5. **Email** — already `semacheck254@gmail.com`; double-check in `CONFIG.email`.
-6. **Owner passcode** — `CONFIG.adminPasscode` (`nyumbani2026`).
+6. **Admin passcode** — set `ADMIN_PASSCODE` in the server's `.env` only (no
+   default, never in code or docs). It guards the hidden admin page.
 7. **Registration numbers** — business No. and KRA PIN in the Contact page.
 8. **Socials** — `SOCIALS` array has the 7 links (Facebook added); swap if needed.
 9. **Domain** — `https://nyumbaniconcierge.vercel.app/` is used in `index.html`

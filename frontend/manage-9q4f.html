@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Nyumbani Concierge</title>
+<style>
+:root{--green:#0c3b1f;--green-deep:#082b16;--gold:#d4a017;--gold-dark:#8a6414;--cream:#faf7f0;--slate:#5b6b61;--line:#e2e0d8;--white:#fff;--ok:#176b3f;--warn:#9a6a00;--err:#b3261e;--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--cream);color:#17251c;min-height:100vh}
+header{background:var(--green);color:var(--white);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header .brand{font-weight:800;letter-spacing:.2px}
+header .brand small{display:block;font-weight:400;font-size:.72rem;opacity:.75;letter-spacing:.4px}
+.hdr-actions{display:flex;gap:8px;align-items:center}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 16px 60px}
+.btn{border:0;border-radius:10px;padding:9px 16px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:var(--green-deep)}
+.btn-green{background:var(--green);color:#fff}
+.btn-line{background:transparent;color:var(--green);border:1.5px solid var(--green)}
+.btn-sm{padding:6px 12px;font-size:.82rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.stat .n{font-size:1.35rem;font-weight:800;color:var(--green)}
+.stat .l{font-size:.76rem;color:var(--slate);text-transform:uppercase;letter-spacing:.4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:18px}
+.panel h2{font-size:1.02rem;color:var(--green);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.panel h2 .cnt{font-size:.75rem;color:var(--slate);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.item{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;font-size:.88rem}
+.item .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.item .top strong{font-size:.92rem}
+.meta{color:var(--slate);font-size:.8rem;line-height:1.5}
+.row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+.tag-paid{background:#e3f3ea;color:var(--ok)}
+.tag-await{background:#fdf0d3;color:var(--warn)}
+.tag-pend{background:#ececec;color:#555}
+.tag-new{background:#fde8e6;color:var(--err)}
+.tag-done{background:#e3f3ea;color:var(--ok)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.8rem;font-weight:700;margin-bottom:5px;color:#2c3b31}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.92rem;font-family:inherit;background:var(--white);color:#17251c}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--green)}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--slate);font-size:.72rem;text-transform:uppercase;letter-spacing:.4px}
+.right{text-align:right}
+.center{text-align:center}
+.msg{display:none;padding:11px 14px;border-radius:10px;font-size:.88rem;margin-bottom:14px;font-weight:600}
+.msg.show{display:block}
+.msg.ok{background:#e3f3ea;color:var(--ok)}
+.msg.err{background:#fde8e6;color:var(--err)}
+.login-card{max-width:360px;margin:9vh auto;background:var(--white);border:1px solid var(--line);border-radius:18px;padding:28px;text-align:center}
+.login-card .lock{width:44px;height:44px;border-radius:50%;background:var(--green);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:14px;font-weight:800}
+.login-card h1{font-size:1.05rem;color:var(--green);margin-bottom:4px}
+.login-card p{font-size:.84rem;color:var(--slate);margin-bottom:18px}
+.empty{color:var(--slate);font-size:.86rem;padding:6px 0}
+#dash{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Nyumbani Concierge<small>Operations dashboard</small></div>
+  <div class="hdr-actions">
+    <button type="button" class="btn btn-line btn-sm" id="refreshBtn">Refresh</button>
+    <button type="button" class="btn btn-gold btn-sm" id="logoutBtn">Lock</button>
+  </div>
+</header>
+
+<div class="login-card" id="loginCard">
+  <div class="lock">L</div>
+  <h1>Restricted area</h1>
+  <p>Enter your passcode to continue.</p>
+  <div class="field"><input id="passInput" type="password" placeholder="Passcode" autocomplete="off"></div>
+  <button type="button" class="btn btn-green" id="unlockBtn" style="width:100%">Enter</button>
+</div>
+
+<div class="wrap" id="dash">
+  <div class="msg" id="flash"></div>
+  <div class="stats" id="statsRow"></div>
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2>Awaiting bank confirmation <span class="cnt" id="awaitCount"></span></h2>
+        <div id="awaitList"></div>
+      </div>
+      <div class="panel">
+        <h2>Post a report to a client</h2>
+        <div class="field"><label>Paid order</label><select id="repOrder"></select></div>
+        <div class="field"><label>Report title</label><input id="repTitle" type="text" placeholder="e.g. Title search completed for LR 123/456"></div>
+        <div class="field"><label>Report details</label><textarea id="repBody" rows="3" placeholder="What was done, findings, receipts..."></textarea></div>
+        <div class="field"><label>Evidence link (optional)</label><input id="repLink" type="text" placeholder="https://drive.google.com/..."></div>
+        <button type="button" class="btn btn-gold" id="repBtn">Post report</button>
+      </div>
+      <div class="panel">
+        <h2>Custom requests <span class="cnt" id="reqCount"></span></h2>
+        <div id="reqList"></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel">
+        <h2>Orders <span class="cnt" id="orderCount"></span></h2>
+        <div style="overflow-x:auto"><table id="ordersTable"><thead><tr><th>Order</th><th>Client</th><th>Status</th><th class="right">Total</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Clients <span class="cnt" id="userCount"></span></h2>
+        <div style="overflow-x:auto"><table id="usersTable"><thead><tr><th>Name</th><th>Contact</th><th>Joined</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = (() => { try { return localStorage.getItem("nc_api_base") || "https://nyumbani-concierge-api.onrender.com"; } catch { return "https://nyumbani-concierge-api.onrender.com"; } })();
+const apiUrl = p => API_BASE.replace(/\/+$/, "") + p;
+const pass = () => sessionStorage.getItem("nc_admin_pass") || "";
+const fmt = n => "KES " + Number(n || 0).toLocaleString("en-KE");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const tag = s => s === "paid" ? '<span class="tag tag-paid">Paid</span>' : s === "awaiting" ? '<span class="tag tag-await">Awaiting</span>' : s === "failed" ? '<span class="tag tag-pend">Failed</span>' : '<span class="tag tag-pend">Pending</span>';
+
+let DATA = null;
+
+function flash(msg, ok) {
+  const f = document.getElementById("flash");
+  f.textContent = msg; f.className = "msg show " + (ok ? "ok" : "err");
+  clearTimeout(f._t); f._t = setTimeout(() => { f.className = "msg"; }, 4200);
+}
+
+async function adminFetch(path, opts) {
+  const res = await fetch(apiUrl(path), Object.assign({}, opts, {
+    headers: Object.assign({ "Content-Type": "application/json", "x-admin-passcode": pass() }, (opts || {}).headers || {})
+  }));
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+
+function userName(id) { const u = (DATA.users || []).find(x => x.id === id); return u ? u.name : (id || "—"); }
+function userContact(id) { const u = (DATA.users || []).find(x => x.id === id); return u ? (u.phone || u.email) : "—"; }
+function fmtDate(d) { try { return new Date(d).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" }); } catch { return d; } }
+
+function renderStats(s) {
+  const cards = [
+    ["Revenue (paid)", fmt(s.revenue)],
+    ["Clients", s.users],
+    ["Orders", s.orders],
+    ["Paid", s.paid],
+    ["Awaiting", s.awaiting],
+    ["New requests", s.newRequests]
+  ];
+  document.getElementById("statsRow").innerHTML = cards.map(c => `<div class="stat"><div class="n">${esc(c[1])}</div><div class="l">${c[0]}</div></div>`).join("");
+}
+
+function renderAwaiting() {
+  const needs = o => o.status === "awaiting" || (o.status === "pending" && o.method === "bank");
+  const list = (DATA.orders || []).filter(needs);
+  const box = document.getElementById("awaitList");
+  document.getElementById("awaitCount").textContent = list.length ? list.length + " open" : "";
+  if (!list.length) { box.innerHTML = '<p class="empty">Nothing waiting on you.</p>'; return; }
+  box.innerHTML = list.map(o => `<div class="item">
+    <div class="top"><strong>${esc(o.id)}</strong><span style="font-weight:800;color:var(--green)">${fmt(o.total)}</span></div>
+    <div class="meta">${esc(userName(o.userId))} · ${esc(userContact(o.userId))}<br>${fmtDate(o.date)} · Bank transfer${o.bankRef ? " · Ref: " + esc(o.bankRef) : ""}</div>
+    <div class="row"><button type="button" class="btn btn-green btn-sm" onclick="confirmOrder('${esc(o.id)}')">Confirm payment received</button></div>
+  </div>`).join("");
+}
+
+function renderOrders() {
+  const list = (DATA.orders || []).slice(0, 40);
+  document.getElementById("orderCount").textContent = (DATA.orders || []).length;
+  document.getElementById("ordersTable").querySelector("tbody").innerHTML = list.map(o => `<tr>
+    <td><strong>${esc(o.id)}</strong><div class="meta">${fmtDate(o.date)}</div></td>
+    <td>${esc(userName(o.userId))}</td>
+    <td>${tag(o.status)}${o.status === "awaiting" || (o.status === "pending" && o.method === "bank") ? '<div class="row"><button type="button" class="btn btn-green btn-sm" onclick="confirmOrder(\'' + esc(o.id) + '\')">Confirm</button></div>' : ""}</td>
+    <td class="right" style="font-weight:700">${fmt(o.total)}</td>
+    <td class="meta">${o.method === "mpesa" ? "M-Pesa" : "Bank"}${o.txnId ? "<br>Tx " + esc(o.txnId) : ""}${o.bankRef ? "<br>Ref " + esc(o.bankRef) : ""}</td>
+  </tr>`).join("");
+}
+
+function renderUsers() {
+  document.getElementById("userCount").textContent = (DATA.users || []).length;
+  document.getElementById("usersTable").querySelector("tbody").innerHTML = (DATA.users || []).slice(0, 40).map(u => `<tr>
+    <td>${esc(u.name)}</td>
+    <td>${esc(u.email)}${u.phone ? "<br>" + esc(u.phone) : ""}</td>
+    <td class="meta">${fmtDate(u.created_at || u.createdAt || "")}</td>
+  </tr>`).join("");
+}
+
+function renderRequests() {
+  const list = (DATA.requests || []).filter(r => r.status === "new");
+  document.getElementById("reqCount").textContent = list.length ? list.length + " open" : "";
+  const box = document.getElementById("reqList");
+  if (!list.length) { box.innerHTML = '<p class="empty">No open requests.</p>'; return; }
+  box.innerHTML = list.map(r => `<div class="item">
+    <div class="top"><strong>${esc(r.name)}</strong><span class="tag tag-new">New</span></div>
+    <div class="meta">${esc(r.contact)}<br>${fmtDate(r.date)}</div>
+    <p style="margin-top:6px">${esc(r.text)}</p>
+    <div class="row"><button type="button" class="btn btn-line btn-sm" onclick="markDone('${esc(r.id)}')">Mark handled</button></div>
+  </div>`).join("");
+}
+
+function renderRepOrders() {
+  const sel = document.getElementById("repOrder");
+  const paid = (DATA.orders || []).filter(o => o.status === "paid");
+  sel.innerHTML = paid.length
+    ? paid.map(o => `<option value="${esc(o.id)}">${esc(o.id)} — ${esc(userName(o.userId))} — ${fmt(o.total)}</option>`).join("")
+    : '<option value="">No paid orders yet</option>';
+}
+
+async function loadAll(silent) {
+  if (!silent) flash("Loading...", true);
+  try {
+    DATA = await adminFetch("/api/admin/overview");
+    renderStats(DATA.stats);
+    renderAwaiting(); renderOrders(); renderUsers(); renderRequests(); renderRepOrders();
+    flash("", true);
+  } catch (e) {
+    if (e.message === "UNAUTHORIZED") { lock(); flash("Incorrect passcode", false); }
+    else flash("Server unreachable — try again shortly", false);
+  }
+}
+
+async function confirmOrder(id) {
+  try { await adminFetch("/api/admin/orders/" + encodeURIComponent(id) + "/confirm", { method: "POST", body: "{}" }); flash("Order " + id + " marked paid", true); loadAll(true); }
+  catch (e) { flash(e.message === "UNAUTHORIZED" ? "Session expired" : "Failed: " + e.message, false); }
+}
+
+async function markDone(id) {
+  try { await adminFetch("/api/admin/requests/" + encodeURIComponent(id) + "/done", { method: "POST", body: "{}" }); flash("Request marked handled", true); loadAll(true); }
+  catch (e) { flash(e.message === "UNAUTHORIZED" ? "Session expired" : "Failed: " + e.message, false); }
+}
+
+function unlock() {
+  document.getElementById("loginCard").style.display = "none";
+  document.getElementById("dash").style.display = "block";
+  loadAll(true);
+}
+
+function lock() {
+  sessionStorage.removeItem("nc_admin_pass");
+  DATA = null;
+  document.getElementById("dash").style.display = "none";
+  document.getElementById("loginCard").style.display = "block";
+  document.getElementById("passInput").value = "";
+  document.getElementById("passInput").focus();
+}
+
+document.getElementById("unlockBtn").addEventListener("click", () => {
+  const v = document.getElementById("passInput").value;
+  if (!v) return;
+  sessionStorage.setItem("nc_admin_pass", v);
+  unlock();
+});
+document.getElementById("passInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("unlockBtn").click(); });
+document.getElementById("logoutBtn").addEventListener("click", lock);
+document.getElementById("refreshBtn").addEventListener("click", () => loadAll(true));
+
+document.getElementById("repBtn").addEventListener("click", async () => {
+  const orderId = document.getElementById("repOrder").value;
+  const title = document.getElementById("repTitle").value.trim();
+  const body = document.getElementById("repBody").value.trim();
+  const link = document.getElementById("repLink").value.trim();
+  if (!orderId || !title || !body) return flash("Fill the order, title and details", false);
+  try {
+    await adminFetch("/api/admin/reports", { method: "POST", body: JSON.stringify({ orderId, title, body, link }) });
+    document.getElementById("repTitle").value = ""; document.getElementById("repBody").value = ""; document.getElementById("repLink").value = "";
+    flash("Report posted to the client's account", true);
+    loadAll(true);
+  } catch (e) { flash(e.message === "UNAUTHORIZED" ? "Session expired" : "Failed: " + e.message, false); }
+});
+
+if (pass()) unlock(); else document.getElementById("passInput").focus();
+</script>
+</body>
+</html>
