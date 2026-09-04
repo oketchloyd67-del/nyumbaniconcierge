@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Nyumbani Concierge</title>
+<meta name="theme-color" content="#0c3b1f">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="../apple-touch-icon-180.png">
+<title>Nyumbani Concierge Admin</title>
 <style>
 :root{--green:#0c3b1f;--green-deep:#082b16;--gold:#d4a017;--gold-dark:#8a6414;--cream:#faf7f0;--slate:#5b6b61;--line:#e2e0d8;--white:#fff;--ok:#176b3f;--warn:#9a6a00;--err:#b3261e;--radius:14px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -66,6 +69,7 @@ th{color:var(--slate);font-size:.72rem;text-transform:uppercase;letter-spacing:.
 <header>
   <div class="brand">Nyumbani Concierge<small>Operations dashboard</small></div>
   <div class="hdr-actions">
+    <button type="button" class="btn btn-line btn-sm" id="installBtn" style="display:none">Install app</button>
     <button type="button" class="btn btn-line btn-sm" id="refreshBtn">Refresh</button>
     <button type="button" class="btn btn-gold btn-sm" id="logoutBtn">Lock</button>
   </div>
@@ -274,6 +278,29 @@ document.getElementById("repBtn").addEventListener("click", async () => {
 });
 
 if (pass()) unlock(); else document.getElementById("passInput").focus();
+
+let deferredPrompt = null;
+const installBtn = document.getElementById("installBtn");
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+if (isStandalone) installBtn.style.display = "none";
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!isStandalone) installBtn.style.display = "";
+});
+installBtn.addEventListener("click", async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBtn.style.display = "none";
+  } else {
+    flash("On iPhone/iPad: tap Share, then Add to Home Screen", true);
+  }
+});
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
 </script>
 </body>
 </html>
