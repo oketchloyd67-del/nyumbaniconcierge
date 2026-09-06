@@ -119,7 +119,7 @@ th{color:var(--slate);font-size:.72rem;text-transform:uppercase;letter-spacing:.
 </div>
 
 <script>
-const API_BASE = (() => { try { return localStorage.getItem("nc_api_base") || "https://nyumbani-concierge-api.onrender.com"; } catch { return "https://nyumbani-concierge-api.onrender.com"; } })();
+const API_BASE = "https://nyumbani-concierge-api.onrender.com";
 const apiUrl = p => API_BASE.replace(/\/+$/, "") + p;
 const pass = () => sessionStorage.getItem("nc_admin_pass") || "";
 const fmt = n => "KES " + Number(n || 0).toLocaleString("en-KE");
