@@ -1,4 +1,4 @@
-const VERSION = "nyumbani-v2";
+const VERSION = "nyumbani-v3";
 const ASSETS = [
   "./",
   "./index.html",
