@@ -1099,11 +1099,13 @@ renderServices(); renderCheckout(); updateNavCart(); renderNavAuth(); renderSoci
 route();
 let API_MODE = "demo";
 (async function init() {
-  try {
-    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
-    const r = await fetch(apiUrl("/api/health"), { signal: ctrl.signal }); clearTimeout(t);
-    if (r.ok) API_MODE = "live";
-  } catch {}
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 20000);
+      const r = await fetch(apiUrl("/api/health"), { signal: ctrl.signal }); clearTimeout(t);
+      if (r.ok) { API_MODE = "live"; break; }
+    } catch { if (attempt < 2) await new Promise(r => setTimeout(r, 3000)); }
+  }
   try { localStorage.setItem("nc_api_base", CONFIG.apiBase); } catch {}
   await restoreSession();
   renderNavAuth(); route();
