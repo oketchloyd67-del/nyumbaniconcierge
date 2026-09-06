@@ -169,7 +169,7 @@ function renderAwaiting() {
   box.innerHTML = list.map(o => `<div class="item">
     <div class="top"><strong>${esc(o.id)}</strong><span style="font-weight:800;color:var(--green)">${fmt(o.total)}</span></div>
     <div class="meta">${esc(userName(o.userId))} · ${esc(userContact(o.userId))}<br>${fmtDate(o.date)} · Bank transfer${o.bankRef ? " · Ref: " + esc(o.bankRef) : ""}</div>
-    <div class="row"><button type="button" class="btn btn-green btn-sm" onclick="confirmOrder('${esc(o.id)}')">Confirm payment received</button></div>
+    <div class="row"><button type="button" class="btn btn-green btn-sm" onclick="confirmOrder('${esc(o.id)}')">Confirm payment received</button><button type="button" class="btn btn-sm" style="background:var(--err);color:#fff" onclick="deleteOrder('${esc(o.id)}')">Delete</button></div>
   </div>`).join("");
 }
 
@@ -179,7 +179,7 @@ function renderOrders() {
   document.getElementById("ordersTable").querySelector("tbody").innerHTML = list.map(o => `<tr>
     <td><strong>${esc(o.id)}</strong><div class="meta">${fmtDate(o.date)}</div></td>
     <td>${esc(userName(o.userId))}</td>
-    <td>${tag(o.status)}${o.status === "awaiting" || (o.status === "pending" && o.method === "bank") ? '<div class="row"><button type="button" class="btn btn-green btn-sm" onclick="confirmOrder(\'' + esc(o.id) + '\')">Confirm</button></div>' : ""}</td>
+    <td>${tag(o.status)}${o.status !== "paid" ? '<div class="row"><button type="button" class="btn btn-green btn-sm" onclick="confirmOrder(\'' + esc(o.id) + '\')">Confirm</button><button type="button" class="btn btn-sm" style="background:var(--err);color:#fff" onclick="deleteOrder(\'' + esc(o.id) + '\')">Delete</button></div>' : ""}</td>
     <td class="right" style="font-weight:700">${fmt(o.total)}</td>
     <td class="meta">${o.method === "mpesa" ? "M-Pesa" : "Bank"}${o.txnId ? "<br>Tx " + esc(o.txnId) : ""}${o.bankRef ? "<br>Ref " + esc(o.bankRef) : ""}</td>
   </tr>`).join("");
@@ -230,6 +230,12 @@ async function loadAll(silent) {
 
 async function confirmOrder(id) {
   try { await adminFetch("/api/admin/orders/" + encodeURIComponent(id) + "/confirm", { method: "POST", body: "{}" }); flash("Order " + id + " marked paid", true); loadAll(true); }
+  catch (e) { flash(e.message === "UNAUTHORIZED" ? "Session expired" : "Failed: " + e.message, false); }
+}
+
+async function deleteOrder(id) {
+  if (!confirm("Delete order " + id + "? This cannot be undone.")) return;
+  try { await adminFetch("/api/admin/orders/" + encodeURIComponent(id), { method: "DELETE" }); flash("Order " + id + " deleted", true); loadAll(true); }
   catch (e) { flash(e.message === "UNAUTHORIZED" ? "Session expired" : "Failed: " + e.message, false); }
 }
 

@@ -115,6 +115,19 @@ async function updateRow(table, id, patch) {
   return x;
 }
 
+async function deleteRow(table, id) {
+  if (useDb) {
+    await supabase(table, "DELETE", `?id=eq.${encodeURIComponent(String(id))}`);
+    return true;
+  }
+  const rows = loadJson(table);
+  const idx = rows.findIndex(r => r.id === id);
+  if (idx === -1) return false;
+  rows.splice(idx, 1);
+  saveJson(table, rows);
+  return true;
+}
+
 const ah = fn => (req, res) => fn(req, res).catch(e => { console.error("Handler error:", e); res.status(500).json({ error: e.message || "Server error" }); });
 
 function adminOk(req) {
@@ -334,6 +347,14 @@ app.post("/api/orders/:id/banknote", ah(async (req, res) => {
 app.post("/api/admin/orders/:id/confirm", requireAdmin, ah(async (req, res) => {
   const o = await updateRow("orders", req.params.id, { status: "paid" });
   o ? res.json({ ok: true }) : res.status(404).json({ error: "Not found" });
+}));
+
+app.delete("/api/admin/orders/:id", requireAdmin, ah(async (req, res) => {
+  const o = await findOne("orders", "id", req.params.id);
+  if (!o) return res.status(404).json({ error: "Not found" });
+  if (o.status === "paid") return res.status(400).json({ error: "Cannot delete a paid order" });
+  await deleteRow("orders", req.params.id);
+  res.json({ ok: true });
 }));
 
 app.post("/api/admin/requests/:id/done", requireAdmin, ah(async (req, res) => {
