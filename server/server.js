@@ -1,5 +1,5 @@
 const express = require("express");
-const fs = require("fs");
+
 const path = require("path");
 const crypto = require("crypto");
 
@@ -33,22 +33,12 @@ const TUMA_CALLBACK_URL = process.env.TUMA_CALLBACK_URL || "";
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || "";
 const useDb = !!(SUPABASE_URL && SUPABASE_KEY);
-
-const DATA_DIR = path.join(__dirname, "data");
-const JSON_FILES = {
-  users: path.join(DATA_DIR, "users.json"),
-  orders: path.join(DATA_DIR, "orders.json"),
-  reports: path.join(DATA_DIR, "reports.json"),
-  requests: path.join(DATA_DIR, "requests.json")
-};
+if (!useDb) console.warn("WARNING: SUPABASE_URL and SUPABASE_SERVICE_KEY are not set. All database operations will fail.");
 
 const COL_MAP = { user_id: "userId", bank_ref: "bankRef", checkout_request_id: "checkoutRequestId", txn_id: "txnId", order_id: "orderId" };
 const REV_MAP = Object.fromEntries(Object.entries(COL_MAP).map(([k, v]) => [v, k]));
 const toCamel = row => { if (!row) return row; const out = {}; for (const k in row) out[COL_MAP[k] || k] = row[k]; return out; };
 const toSnake = obj => { const out = {}; for (const k in obj) out[REV_MAP[k] || k] = obj[k]; return out; };
-
-function loadJson(table) { try { return JSON.parse(fs.readFileSync(JSON_FILES[table], "utf8")); } catch { return []; } }
-function saveJson(table, rows) { if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(JSON_FILES[table], JSON.stringify(rows, null, 2)); }
 
 async function supabase(table, method, query, body) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query || ""}`, {
@@ -67,64 +57,33 @@ async function supabase(table, method, query, body) {
 }
 
 async function findOne(table, field, value) {
-  if (useDb) {
-    const rows = await supabase(table, "GET", `?select=*&${field}=eq.${encodeURIComponent(String(value))}&limit=1`);
-    return toCamel(rows[0] || null);
-  }
-  return loadJson(table).find(r => r[field] === value) || null;
+  const rows = await supabase(table, "GET", `?select=*&${field}=eq.${encodeURIComponent(String(value))}&limit=1`);
+  return toCamel(rows[0] || null);
 }
 
 async function listAll(table, orderField) {
-  if (useDb) {
-    const rows = await supabase(table, "GET", `?select=*&order=${orderField}.desc`);
-    return rows.map(toCamel);
-  }
-  return loadJson(table).sort((a, b) => new Date(b[orderField]) - new Date(a[orderField]));
+  const rows = await supabase(table, "GET", `?select=*&order=${orderField}.desc`);
+  return rows.map(toCamel);
 }
 
 async function listWhere(table, field, value, orderField) {
-  if (useDb) {
-    const dbField = REV_MAP[field] || field;
-    const rows = await supabase(table, "GET", `?select=*&${dbField}=eq.${encodeURIComponent(String(value))}&order=${orderField}.desc`);
-    return rows.map(toCamel);
-  }
-  return loadJson(table).filter(r => r[field] === value).sort((a, b) => new Date(b[orderField]) - new Date(a[orderField]));
+  const dbField = REV_MAP[field] || field;
+  const rows = await supabase(table, "GET", `?select=*&${dbField}=eq.${encodeURIComponent(String(value))}&order=${orderField}.desc`);
+  return rows.map(toCamel);
 }
 
 async function insertRow(table, obj) {
-  if (useDb) {
-    const rows = await supabase(table, "POST", "", obj);
-    return toCamel(rows[0] || obj);
-  }
-  const rows = loadJson(table);
-  rows.unshift(obj);
-  saveJson(table, rows);
-  return obj;
+  const rows = await supabase(table, "POST", "", obj);
+  return toCamel(rows[0] || obj);
 }
 
 async function updateRow(table, id, patch) {
-  if (useDb) {
-    const rows = await supabase(table, "PATCH", `?id=eq.${encodeURIComponent(String(id))}`, patch);
-    return toCamel(rows[0] || null);
-  }
-  const rows = loadJson(table);
-  const x = rows.find(r => r.id === id);
-  if (!x) return null;
-  Object.assign(x, patch);
-  saveJson(table, rows);
-  return x;
+  const rows = await supabase(table, "PATCH", `?id=eq.${encodeURIComponent(String(id))}`, patch);
+  return toCamel(rows[0] || null);
 }
 
 async function deleteRow(table, id) {
-  if (useDb) {
-    await supabase(table, "DELETE", `?id=eq.${encodeURIComponent(String(id))}`);
-    return true;
-  }
-  const rows = loadJson(table);
-  const idx = rows.findIndex(r => r.id === id);
-  if (idx === -1) return false;
-  rows.splice(idx, 1);
-  saveJson(table, rows);
+  await supabase(table, "DELETE", `?id=eq.${encodeURIComponent(String(id))}`);
   return true;
 }
 
