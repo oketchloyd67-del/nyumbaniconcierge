@@ -245,7 +245,7 @@ app.post("/api/orders", ah(async (req, res) => {
   const { id, method, items, total } = req.body || {};
   if (!id || !method || !Array.isArray(items)) return res.status(400).json({ error: "Order details incomplete" });
   if (await findOne("orders", "id", id)) return res.status(409).json({ error: "Order exists" });
-  await insertRow("orders", { id, date: new Date().toISOString(), method, userId: u.id, items, total: Number(total) || 0, status: "pending", txnId: null, phone: null, bankRef: null, checkoutRequestId: null });
+  await insertRow("orders", { id, date: new Date().toISOString(), method, userId: u.id, items, total: Number(total) || 0, status: "pending", txnId: "", phone: "", bankRef: "", checkoutRequestId: "" });
   res.json({ ok: true });
 }));
 
